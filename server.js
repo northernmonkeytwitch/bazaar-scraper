@@ -29,11 +29,15 @@ async function tryFuzzyItemName(itemName) {
     try {
         const { data } = await axios.get(indexUrl);
         const $ = cheerio.load(data);
-        const items = [];
+        let items = [];
         $('#mw-content-text li a').each((i, el) => {
             const title = $(el).text();
-            if (title) items.push(title);
+            if (typeof title === 'string' && title.trim()) {
+                items.push(title.trim());
+            }
         });
+
+        if (items.length === 0) throw new Error("No valid items found from wiki.");
 
         const match = stringSimilarity.findBestMatch(itemName, items).bestMatch;
         return match.rating >= 0.3 ? match.target : null;
@@ -63,7 +67,7 @@ app.get('/bazaar', async (req, res) => {
             if (err.response && err.response.status === 404) {
                 const fuzzyMatch = await tryFuzzyItemName(itemName);
                 if (!fuzzyMatch) {
-                    return res.send(`Item \"${itemName}\" not found on the wiki. Please double-check the spelling.`);
+                    return res.send(`Item "${itemName}" not found on the wiki. Please double-check the spelling.`);
                 }
                 itemName = fuzzyMatch;
                 pageName = formatPageName(itemName);
@@ -83,6 +87,7 @@ app.get('/bazaar', async (req, res) => {
         let characterName = "Unknown";
         let enchantmentList = [];
 
+        // Extract character from <aside> under h3 "Collection"
         $('aside').each((i, aside) => {
             const headers = $(aside).find('h3');
             headers.each((j, header) => {
@@ -96,6 +101,7 @@ app.get('/bazaar', async (req, res) => {
             });
         });
 
+        // Find all tables with captions containing "Enchantment"
         $('table').each((i, table) => {
             const caption = $(table).find('caption').text().toLowerCase();
             if (caption.includes("enchantment")) {
@@ -110,10 +116,11 @@ app.get('/bazaar', async (req, res) => {
                         });
                     }
                 });
-                return false;
+                return false; // break after finding enchantment table
             }
         });
 
+        // Check if user wants to list all enchantments
         if (enchantmentName.toLowerCase() === 'list') {
             if (enchantmentList.length === 0) {
                 return res.send(`No enchantments found for ${itemName}.`);
@@ -127,6 +134,7 @@ app.get('/bazaar', async (req, res) => {
             return res.send(`${itemName} Enchantments ✚ ${listOutput}`);
         }
 
+        // Use string similarity to find the closest match
         const names = enchantmentList.map(e => e.name);
         const match = stringSimilarity.findBestMatch(enchantmentName, names).bestMatch;
 
@@ -138,7 +146,7 @@ app.get('/bazaar', async (req, res) => {
         }
 
         if (!found) {
-            return res.send(`Enchantment \"${enchantmentName}\" not found on ${itemName}.`);
+            return res.send(`Enchantment "${enchantmentName}" not found on ${itemName}.`);
         }
 
         const emote = enchantEmojis[bestMatch.target] || "";
