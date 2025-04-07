@@ -70,7 +70,8 @@ async function tryFuzzyItemName(itemName) {
         const inputNormalized = normalizeString(itemName);
         const matchResult = stringSimilarity.findBestMatch(inputNormalized, Object.keys(itemMap));
 
-        if (matchResult.bestMatch.rating >= 0.3) {
+        console.log("Indexed", items.length, "items from Special:AllPages");
+        if (matchResult.bestMatch.rating >= 0.4 {
             const match = itemMap[matchResult.bestMatch.target];
             return { title: match.title, href: match.href };
         } else {
