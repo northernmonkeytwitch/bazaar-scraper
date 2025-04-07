@@ -70,8 +70,7 @@ async function tryFuzzyItemName(itemName) {
         const inputNormalized = normalizeString(itemName);
         const matchResult = stringSimilarity.findBestMatch(inputNormalized, Object.keys(itemMap));
 
-        console.log("Indexed", items.length, "items from Special:AllPages");
-        if (matchResult.bestMatch.rating >= 0.4) {
+                if (matchResult.bestMatch.rating >= 0.4) {
             const match = itemMap[matchResult.bestMatch.target];
             return { title: match.title, href: match.href };
         } else {
@@ -108,12 +107,8 @@ app.get('/bazaar', async (req, res) => {
         }
         itemName = fuzzyMatch.title;
         const fallbackUrl = `https://thebazaar.wiki.gg/wiki/${encodeURIComponent(fuzzyMatch.href)}`;
-        console.log("Fuzzy match title:", fuzzyMatch.title);
-        console.log("Fuzzy match href:", fuzzyMatch.href);
-        console.log("Final fallback URL:", fallbackUrl);
-        try {
-        console.log("Attempting to fetch fallback URL for", itemName);
-        response = await axios.get(fallbackUrl);
+                                try {
+                response = await axios.get(fallbackUrl);
         } catch (error) {
             return res.send(`Even after fuzzy matching, "${itemName}" could not be found.`);
         }
@@ -149,8 +144,7 @@ app.get('/bazaar', async (req, res) => {
         $('table').each((i, table) => {
             const caption = $(table).find('caption').text().toLowerCase();
             if (caption.includes("enchantment")) {
-                console.log("Found enchantment table for:", itemName);
-                $(table).find('tr').each((j, row) => {
+                                $(table).find('tr').each((j, row) => {
                     const cells = $(row).find('td');
                     if (cells.length >= 2) {
                         const enchantText = cells.eq(0).text().trim();
