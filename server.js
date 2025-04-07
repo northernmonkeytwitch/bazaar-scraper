@@ -85,7 +85,6 @@ app.get('/bazaar', async (req, res) => {
         try {
             response = await axios.get(fallbackUrl);
         } catch (error) {
-            return res.send(`Even after fuzzy matching, "${itemName}" could not be found.`); catch (error) {
             return res.send(`Even after fuzzy matching, "${itemName}" could not be found.`);
         }
     }
