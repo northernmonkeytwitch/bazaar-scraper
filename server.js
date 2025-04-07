@@ -51,11 +51,12 @@ app.get('/bazaar', async (req, res) => {
     const query = req.query.q;
     if (!query) return res.send("Please specify an item and enchantment.");
 
-    const [itemNameRaw, enchantmentRaw] = query.split(/ (.+)/); // Splits on first space
-    if (!itemNameRaw || !enchantmentRaw) return res.send("Format: !bazaar [item] [enchantment]");
+    const args = query.trim().split(" ");
+    if (args.length < 2) return res.send("Format: !bazaar [item] [enchantment]");
 
-    let itemName = itemNameRaw.trim();
-    const enchantmentName = enchantmentRaw.trim();
+    const enchantmentName = args.pop();
+    const itemName = args.join(" ");
+
     let pageName = formatPageName(itemName);
     let url = `https://thebazaar.wiki.gg/wiki/${encodeURIComponent(pageName)}`;
 
@@ -87,7 +88,6 @@ app.get('/bazaar', async (req, res) => {
         let characterName = "Unknown";
         let enchantmentList = [];
 
-        // Extract character from <aside> under h3 "Collection"
         $('aside').each((i, aside) => {
             const headers = $(aside).find('h3');
             headers.each((j, header) => {
@@ -101,7 +101,6 @@ app.get('/bazaar', async (req, res) => {
             });
         });
 
-        // Find all tables with captions containing "Enchantment"
         $('table').each((i, table) => {
             const caption = $(table).find('caption').text().toLowerCase();
             if (caption.includes("enchantment")) {
@@ -116,11 +115,10 @@ app.get('/bazaar', async (req, res) => {
                         });
                     }
                 });
-                return false; // break after finding enchantment table
+                return false;
             }
         });
 
-        // Check if user wants to list all enchantments
         if (enchantmentName.toLowerCase() === 'list') {
             if (enchantmentList.length === 0) {
                 return res.send(`No enchantments found for ${itemName}.`);
@@ -134,7 +132,6 @@ app.get('/bazaar', async (req, res) => {
             return res.send(`${itemName} Enchantments ✚ ${listOutput}`);
         }
 
-        // Use string similarity to find the closest match
         const names = enchantmentList.map(e => e.name);
         const match = stringSimilarity.findBestMatch(enchantmentName, names).bestMatch;
 
