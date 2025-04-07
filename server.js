@@ -80,7 +80,7 @@ app.get('/bazaar', async (req, res) => {
             return res.send(`Item "${itemName}" not found on the wiki. Please double-check the spelling.`);
         }
         itemName = fuzzyMatch;
-        const fallbackPage = itemName;
+        const fallbackPage = formatPageName(itemName);
         const fallbackUrl = `https://thebazaar.wiki.gg/wiki/${encodeURIComponent(fallbackPage)}`;
         try {
             response = await axios.get(fallbackUrl);
