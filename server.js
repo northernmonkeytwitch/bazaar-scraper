@@ -35,22 +35,23 @@ async function tryFuzzyItemName(itemName) {
         let items = [];
         $('#mw-content-text li a').each((i, el) => {
             const title = $(el).text();
-            if (typeof title === 'string' && title.trim()) {
-                items.push(title.trim());
+            const href = $(el).attr('href');
+            if (typeof title === 'string' && title.trim() && href) {
+                items.push({ title: title.trim(), href: href.replace('/wiki/', '') });
             }
         });
 
         if (items.length === 0) throw new Error("No valid items found from wiki.");
 
-        const itemMap = items.reduce((map, original) => {
-            const normalized = normalizeString(original);
-            map[normalized] = original;
+        const itemMap = items.reduce((map, entry) => {
+            const normalized = normalizeString(entry.title);
+            map[normalized] = entry;
             return map;
         }, {});
 
         const inputNormalized = normalizeString(itemName);
         const matchResult = stringSimilarity.findBestMatch(inputNormalized, Object.keys(itemMap));
-        return matchResult.bestMatch.rating >= 0.3 ? itemMap[matchResult.bestMatch.target] : null;
+        return matchResult.bestMatch.rating >= 0.3 ? { title: itemMap[matchResult.bestMatch.target].title, href: itemMap[matchResult.bestMatch.target].href } : null;
     } catch (e) {
         console.error("Failed fuzzy item lookup:", e.message);
         return null;
@@ -78,6 +79,14 @@ app.get('/bazaar', async (req, res) => {
         const fuzzyMatch = await tryFuzzyItemName(itemName);
         if (!fuzzyMatch) {
             return res.send(`Item "${itemName}" not found on the wiki. Please double-check the spelling.`);
+        }
+        itemName = fuzzyMatch.title;
+        const fallbackUrl = `https://thebazaar.wiki.gg/wiki/${encodeURIComponent(fuzzyMatch.href)}`;
+        try {
+            response = await axios.get(fallbackUrl);
+        } catch (error) {
+            return res.send(`Even after fuzzy matching, "${itemName}" could not be found.`);
+        }" not found on the wiki. Please double-check the spelling.`);
         }
         itemName = fuzzyMatch;
         const fallbackPage = formatPageName(itemName);
