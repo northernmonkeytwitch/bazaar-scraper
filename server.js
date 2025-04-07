@@ -70,11 +70,11 @@ async function tryFuzzyItemName(itemName) {
         const inputNormalized = normalizeString(itemName);
         const matchResult = stringSimilarity.findBestMatch(inputNormalized, Object.keys(itemMap));
 
-                console.log("Indexed", items.length, "items from Special:AllPages");
+                
         if (matchResult.bestMatch.rating >= 0.4) {
             const match = itemMap[matchResult.bestMatch.target];
-            console.log("Fuzzy match title:", match.title);
-            console.log("Fuzzy match href:", match.href);
+            
+            
             return { title: match.title, href: match.href };
         } else {
             return null;
@@ -110,8 +110,8 @@ app.get('/bazaar', async (req, res) => {
         }
         itemName = fuzzyMatch.title;
         const fallbackUrl = `https://thebazaar.wiki.gg/wiki/${fuzzyMatch.href}`;
-        console.log("Attempting to fetch fallback URL for", itemName);
-        console.log("Final fallback URL:", fallbackUrl);
+        
+        
                                 try {
                 response = await axios.get(fallbackUrl);
         } catch (error) {
