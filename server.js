@@ -169,7 +169,14 @@ app.get('/bazaar', async (req, res) => {
                 console.warn(`No enchantments found on page for ${itemName}.`);
                 return res.send(`${itemName} does not have any enchantments listed.`);
             }
-            }
+            const lastIndex = enchantmentList.length - 1;
+            const listOutput = enchantmentList.map((e, idx) => {
+                const emoji = enchantEmojis[e.name] || "";
+                const entry = `${e.name}${emoji} = ${e.effect}`;
+                return idx === lastIndex ? `${entry} | This item belongs to ${characterName}.` : entry;
+            }).join(' | ');
+            return res.send(`${itemName} Enchantments ✚ ${listOutput}`);
+        }
             const lastIndex = enchantmentList.length - 1;
             const listOutput = enchantmentList.map((e, idx) => {
                 const emoji = enchantEmojis[e.name] || "";
