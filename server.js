@@ -109,7 +109,7 @@ app.get('/bazaar', async (req, res) => {
             return res.send(`Item "${itemName}" not found on the wiki. Please double-check the spelling.`);
         }
         itemName = fuzzyMatch.title;
-        const fallbackUrl = `https://thebazaar.wiki.gg/wiki/${encodeURIComponent(fuzzyMatch.href)}`;
+        const fallbackUrl = `https://thebazaar.wiki.gg/wiki/${fuzzyMatch.href}`;
         console.log("Attempting to fetch fallback URL for", itemName);
         console.log("Final fallback URL:", fallbackUrl);
                                 try {
