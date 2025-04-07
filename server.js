@@ -42,8 +42,14 @@ async function tryFuzzyItemName(itemName) {
 
         if (items.length === 0) throw new Error("No valid items found from wiki.");
 
-        const matchResult = stringSimilarity.findBestMatch(itemName, items);
-        return matchResult.bestMatch.rating >= 0.4 ? matchResult.bestMatch.target : null;
+        const inputLower = itemName.toLowerCase();
+        const itemMap = items.reduce((map, original) => {
+            map[original.toLowerCase()] = original;
+            return map;
+        }, {});
+
+        const matchResult = stringSimilarity.findBestMatch(inputLower, Object.keys(itemMap));
+        return matchResult.bestMatch.rating >= 0.4 ? itemMap[matchResult.bestMatch.target] : null;
     } catch (e) {
         console.error("Failed fuzzy item lookup:", e.message);
         return null;
