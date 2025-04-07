@@ -28,9 +28,60 @@ function normalizeString(str) {
 }
 
 async function tryFuzzyItemName(itemName) {
-    const indexUrl = 'https://thebazaar.wiki.gg/wiki/Special:AllPages';
+    const baseUrl = 'https://thebazaar.wiki.gg/wiki/Special:AllPages';
+    const visited = new Set();
+    const items = [];
+
+    async function scrapePage(url) {
+        if (visited.has(url)) return;
+        visited.add(url);
+
+        try {
+            const { data } = await axios.get(url);
+            const $ = cheerio.load(data);
+            $('#mw-content-text li a').each((i, el) => {
+                const title = $(el).text();
+                const href = $(el).attr('href');
+                if (title && href && href.includes('/wiki/')) {
+                    items.push({ title: title.trim(), href: href.replace('/wiki/', '') });
+                }
+            });
+
+            const nextLink = $('a:contains("next page")').attr('href');
+            if (nextLink) {
+                const nextUrl = 'https://thebazaar.wiki.gg' + nextLink;
+                await scrapePage(nextUrl);
+            }
+        } catch (err) {
+            console.error(`Failed to fetch or parse: ${url}`, err.message);
+        }
+    }
+
     try {
-        const { data } = await axios.get(indexUrl);
+        await scrapePage(baseUrl);
+        if (items.length === 0) throw new Error("No valid items found from wiki.");
+
+        const itemMap = items.reduce((map, entry) => {
+            const normalized = normalizeString(entry.title);
+            map[normalized] = entry;
+            return map;
+        }, {});
+
+        const inputNormalized = normalizeString(itemName);
+        const matchResult = stringSimilarity.findBestMatch(inputNormalized, Object.keys(itemMap));
+
+        if (matchResult.bestMatch.rating >= 0.3) {
+            const match = itemMap[matchResult.bestMatch.target];
+            return { title: match.title, href: match.href };
+        } else {
+            return null;
+        }
+    } catch (e) {
+        console.error("Failed fuzzy item lookup:", e.message);
+        return null;
+    }
+}
+} = await axios.get(indexUrl);
         const $ = cheerio.load(data);
         let items = [];
         $('#mw-content-text li a').each((i, el) => {
@@ -51,7 +102,18 @@ async function tryFuzzyItemName(itemName) {
 
         const inputNormalized = normalizeString(itemName);
         const matchResult = stringSimilarity.findBestMatch(inputNormalized, Object.keys(itemMap));
-        return matchResult.bestMatch.rating >= 0.3 ? { title: itemMap[matchResult.bestMatch.target].title, href: itemMap[matchResult.bestMatch.target].href } : null;
+        if (matchResult.bestMatch.rating >= 0.3) {
+    const match = itemMap[matchResult.bestMatch.target];
+    const testUrl = `https://thebazaar.wiki.gg/wiki/${encodeURIComponent(match.href)}`;
+    try {
+        await axios.get(testUrl);
+        return { title: match.title, href: match.href };
+    } catch {
+        return null;
+    }
+} else {
+    return null;
+}
     } catch (e) {
         console.error("Failed fuzzy item lookup:", e.message);
         return null;
