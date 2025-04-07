@@ -42,11 +42,8 @@ async function tryFuzzyItemName(itemName) {
 
         if (items.length === 0) throw new Error("No valid items found from wiki.");
 
-        const normalizedInput = itemName.toLowerCase();
-        const normalizedItems = items.map(item => item.toLowerCase());
-        const matchResult = stringSimilarity.findBestMatch(normalizedInput, normalizedItems);
-        const bestMatchIndex = matchResult.bestMatchIndex;
-        return matchResult.bestMatch.rating >= 0.3 ? items[bestMatchIndex] : null;
+        const matchResult = stringSimilarity.findBestMatch(itemName, items);
+        return matchResult.bestMatch.rating >= 0.4 ? matchResult.bestMatch.target : null;
     } catch (e) {
         console.error("Failed fuzzy item lookup:", e.message);
         return null;
@@ -63,17 +60,29 @@ app.get('/bazaar', async (req, res) => {
     const enchantmentName = args.pop();
     let itemName = toTitleCase(args.join(" "));
 
-    const fuzzyMatch = await tryFuzzyItemName(itemName);
-    if (!fuzzyMatch) {
-        return res.send(`Item "${itemName}" not found on the wiki. Please double-check the spelling.`);
-    }
-    itemName = fuzzyMatch;
-
+    // Attempt exact match before fuzzy fallback
     const pageName = formatPageName(itemName);
     const url = `https://thebazaar.wiki.gg/wiki/${encodeURIComponent(pageName)}`;
+    let response;
 
     try {
-        const response = await axios.get(url);
+        response = await axios.get(url);
+    } catch (err) {
+        const fuzzyMatch = await tryFuzzyItemName(itemName);
+        if (!fuzzyMatch) {
+            return res.send(`Item "${itemName}" not found on the wiki. Please double-check the spelling.`);
+        }
+        itemName = fuzzyMatch;
+        const fallbackPage = formatPageName(itemName);
+        const fallbackUrl = `https://thebazaar.wiki.gg/wiki/${encodeURIComponent(fallbackPage)}`;
+        try {
+            response = await axios.get(fallbackUrl);
+        } catch (error) {
+            return res.send(`Even after fuzzy matching, "${itemName}" could not be found.`);
+        }
+    }
+
+    try {
         const data = response.data;
         const $ = cheerio.load(data);
 
