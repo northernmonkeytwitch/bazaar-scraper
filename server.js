@@ -39,7 +39,8 @@ async function tryFuzzyItemName(itemName) {
 
         if (items.length === 0) throw new Error("No valid items found from wiki.");
 
-        const match = stringSimilarity.findBestMatch(itemName, items).bestMatch;
+        const matchResult = stringSimilarity.findBestMatch(itemName, items);
+        const match = matchResult.bestMatch;
         return match.rating >= 0.3 ? match.target : null;
     } catch (e) {
         console.error("Failed fuzzy item lookup:", e.message);
@@ -55,7 +56,7 @@ app.get('/bazaar', async (req, res) => {
     if (args.length < 2) return res.send("Format: !bazaar [item] [enchantment]");
 
     const enchantmentName = args.pop();
-    const itemName = args.join(" ");
+    let itemName = args.join(" ");
 
     let pageName = formatPageName(itemName);
     let url = `https://thebazaar.wiki.gg/wiki/${encodeURIComponent(pageName)}`;
@@ -133,7 +134,8 @@ app.get('/bazaar', async (req, res) => {
         }
 
         const names = enchantmentList.map(e => e.name);
-        const match = stringSimilarity.findBestMatch(enchantmentName, names).bestMatch;
+        const matchResult = stringSimilarity.findBestMatch(enchantmentName, names);
+        const match = matchResult.bestMatch;
 
         if (match.rating >= 0.5) {
             const matched = enchantmentList.find(e => e.name === match.target);
