@@ -76,11 +76,6 @@ async function tryFuzzyItemName(itemName) {
         } else {
             return null;
         }
-    } catch (e) {
-        console.error("Failed fuzzy item lookup:", e.message);
-        return null;
-    }
-}
 
     } catch (e) {
         console.error("Failed fuzzy item lookup:", e.message);
