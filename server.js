@@ -47,7 +47,7 @@ async function tryFuzzyItemName(itemName) {
                 }
             });
 
-            const nextLink = $('a:contains("next page")').attr('href');
+            const nextLink = $('a[href*="Special:AllPages?from="]').last().attr('href');
             if (nextLink) {
                 const nextUrl = 'https://thebazaar.wiki.gg' + nextLink;
                 await scrapePage(nextUrl);
