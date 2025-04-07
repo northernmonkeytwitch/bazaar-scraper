@@ -50,7 +50,7 @@ async function tryFuzzyItemName(itemName) {
 
         const inputNormalized = normalizeString(itemName);
         const matchResult = stringSimilarity.findBestMatch(inputNormalized, Object.keys(itemMap));
-        return matchResult.bestMatch.rating >= 0.4 ? itemMap[matchResult.bestMatch.target] : null;
+        return matchResult.bestMatch.rating >= 0.3 ? itemMap[matchResult.bestMatch.target] : null;
     } catch (e) {
         console.error("Failed fuzzy item lookup:", e.message);
         return null;
