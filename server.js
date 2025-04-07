@@ -107,8 +107,12 @@ app.get('/bazaar', async (req, res) => {
         }
         itemName = fuzzyMatch.title;
         const fallbackUrl = `https://thebazaar.wiki.gg/wiki/${encodeURIComponent(fuzzyMatch.href)}`;
+        console.log("Fuzzy match title:", fuzzyMatch.title);
+        console.log("Fuzzy match href:", fuzzyMatch.href);
+        console.log("Final fallback URL:", fallbackUrl);
         try {
-            response = await axios.get(fallbackUrl);
+        console.log("Attempting to fetch fallback URL for", itemName);
+        response = await axios.get(fallbackUrl);
         } catch (error) {
             return res.send(`Even after fuzzy matching, "${itemName}" could not be found.`);
         }
@@ -116,6 +120,10 @@ app.get('/bazaar', async (req, res) => {
 
     try {
         const data = response.data;
+        if (!data || data.length === 0) {
+            console.error("No data returned from wiki page.");
+            return res.send(`Failed to load data for ${itemName}.`);
+        }
         const $ = cheerio.load(data);
 
         let found = false;
@@ -140,6 +148,7 @@ app.get('/bazaar', async (req, res) => {
         $('table').each((i, table) => {
             const caption = $(table).find('caption').text().toLowerCase();
             if (caption.includes("enchantment")) {
+                console.log("Found enchantment table for:", itemName);
                 $(table).find('tr').each((j, row) => {
                     const cells = $(row).find('td');
                     if (cells.length >= 2) {
@@ -157,6 +166,7 @@ app.get('/bazaar', async (req, res) => {
 
         if (enchantmentName.toLowerCase() === 'list') {
             if (enchantmentList.length === 0) {
+            console.warn(`No enchantments found on page for ${itemName}.`);
                 return res.send(`No enchantments found for ${itemName}.`);
             }
             const lastIndex = enchantmentList.length - 1;
