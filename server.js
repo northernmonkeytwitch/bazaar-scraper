@@ -23,6 +23,10 @@ function formatPageName(name) {
     return name.trim().replace(/\s+/g, '_').replace(/[^\w_]/g, '');
 }
 
+function toTitleCase(str) {
+    return str.toLowerCase().split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+}
+
 async function tryFuzzyItemName(itemName) {
     const indexUrl = 'https://thebazaar.wiki.gg/wiki/Special:AllPages';
     try {
@@ -57,9 +61,8 @@ app.get('/bazaar', async (req, res) => {
     if (args.length < 2) return res.send("Format: !bazaar [item] [enchantment]");
 
     const enchantmentName = args.pop();
-    let itemName = args.join(" ");
+    let itemName = toTitleCase(args.join(" "));
 
-    // Normalize and match item name first before any URL fetch
     const fuzzyMatch = await tryFuzzyItemName(itemName);
     if (!fuzzyMatch) {
         return res.send(`Item "${itemName}" not found on the wiki. Please double-check the spelling.`);
