@@ -42,7 +42,7 @@ async function tryFuzzyItemName(itemName) {
         const normalizedItems = items.map(item => item.toLowerCase());
         const matchResult = stringSimilarity.findBestMatch(normalizedInput, normalizedItems);
         const bestMatchIndex = matchResult.bestMatchIndex;
-        return matchResult.bestMatch.rating >= 0.5 ? items[bestMatchIndex] : null;
+        return matchResult.bestMatch.rating >= 0.3 ? items[bestMatchIndex] : null;
     } catch (e) {
         console.error("Failed fuzzy item lookup:", e.message);
         return null;
@@ -59,28 +59,18 @@ app.get('/bazaar', async (req, res) => {
     const enchantmentName = args.pop();
     let itemName = args.join(" ");
 
-    let pageName = formatPageName(itemName);
-    let url = `https://thebazaar.wiki.gg/wiki/${encodeURIComponent(pageName)}`;
+    // Normalize and match item name first before any URL fetch
+    const fuzzyMatch = await tryFuzzyItemName(itemName);
+    if (!fuzzyMatch) {
+        return res.send(`Item "${itemName}" not found on the wiki. Please double-check the spelling.`);
+    }
+    itemName = fuzzyMatch;
+
+    const pageName = formatPageName(itemName);
+    const url = `https://thebazaar.wiki.gg/wiki/${encodeURIComponent(pageName)}`;
 
     try {
-        let response;
-        try {
-            response = await axios.get(url);
-        } catch (err) {
-            if (err.response && err.response.status === 404) {
-                const fuzzyMatch = await tryFuzzyItemName(itemName);
-                if (!fuzzyMatch) {
-                    return res.send(`Item "${itemName}" not found on the wiki. Please double-check the spelling.`);
-                }
-                itemName = fuzzyMatch;
-                pageName = formatPageName(itemName);
-                url = `https://thebazaar.wiki.gg/wiki/${encodeURIComponent(pageName)}`;
-                response = await axios.get(url);
-            } else {
-                throw err;
-            }
-        }
-
+        const response = await axios.get(url);
         const data = response.data;
         const $ = cheerio.load(data);
 
