@@ -85,15 +85,7 @@ app.get('/bazaar', async (req, res) => {
         try {
             response = await axios.get(fallbackUrl);
         } catch (error) {
-            return res.send(`Even after fuzzy matching, "${itemName}" could not be found.`);
-        }" not found on the wiki. Please double-check the spelling.`);
-        }
-        itemName = fuzzyMatch;
-        const fallbackPage = formatPageName(itemName);
-        const fallbackUrl = `https://thebazaar.wiki.gg/wiki/${encodeURIComponent(fallbackPage)}`;
-        try {
-            response = await axios.get(fallbackUrl);
-        } catch (error) {
+            return res.send(`Even after fuzzy matching, "${itemName}" could not be found.`); catch (error) {
             return res.send(`Even after fuzzy matching, "${itemName}" could not be found.`);
         }
     }
