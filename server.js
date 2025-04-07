@@ -20,11 +20,11 @@ const enchantEmojis = {
 };
 
 function formatPageName(name) {
-    return name.trim().replace(/\s+/g, '_').replace(/[^\w_]/g, '');
+    return name.trim().replace(/\s+/g, '_'); // Preserve special characters like dashes and numbers
 }
 
-function toTitleCase(str) {
-    return str.toLowerCase().split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+function normalizeString(str) {
+    return str.toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 
 async function tryFuzzyItemName(itemName) {
@@ -42,13 +42,14 @@ async function tryFuzzyItemName(itemName) {
 
         if (items.length === 0) throw new Error("No valid items found from wiki.");
 
-        const inputLower = itemName.toLowerCase();
         const itemMap = items.reduce((map, original) => {
-            map[original.toLowerCase()] = original;
+            const normalized = normalizeString(original);
+            map[normalized] = original;
             return map;
         }, {});
 
-        const matchResult = stringSimilarity.findBestMatch(inputLower, Object.keys(itemMap));
+        const inputNormalized = normalizeString(itemName);
+        const matchResult = stringSimilarity.findBestMatch(inputNormalized, Object.keys(itemMap));
         return matchResult.bestMatch.rating >= 0.4 ? itemMap[matchResult.bestMatch.target] : null;
     } catch (e) {
         console.error("Failed fuzzy item lookup:", e.message);
@@ -64,7 +65,7 @@ app.get('/bazaar', async (req, res) => {
     if (args.length < 2) return res.send("Format: !bazaar [item] [enchantment]");
 
     const enchantmentName = args.pop();
-    let itemName = toTitleCase(args.join(" "));
+    let itemName = args.join(" ");
 
     // Attempt exact match before fuzzy fallback
     const pageName = formatPageName(itemName);
