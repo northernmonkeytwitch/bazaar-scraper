@@ -20,6 +20,29 @@ const enchantEmojis = {
     // Shiny intentionally omitted
 };
 
+function formatPageName(name) {
+    return name.trim().replace(/\s+/g, '_').replace(/[^\w_]/g, '');
+}
+
+async function tryFuzzyItemName(itemName) {
+    const indexUrl = 'https://thebazaar.wiki.gg/wiki/Special:AllPages';
+    try {
+        const { data } = await axios.get(indexUrl);
+        const $ = cheerio.load(data);
+        const items = [];
+        $('#mw-content-text li a').each((i, el) => {
+            const title = $(el).text();
+            if (title) items.push(title);
+        });
+
+        const match = stringSimilarity.findBestMatch(itemName, items).bestMatch;
+        return match.rating >= 0.3 ? match.target : null;
+    } catch (e) {
+        console.error("Failed fuzzy item lookup:", e.message);
+        return null;
+    }
+}
+
 app.get('/bazaar', async (req, res) => {
     const query = req.query.q;
     if (!query) return res.send("Please specify an item and enchantment.");
@@ -27,13 +50,31 @@ app.get('/bazaar', async (req, res) => {
     const [itemNameRaw, enchantmentRaw] = query.split(/ (.+)/); // Splits on first space
     if (!itemNameRaw || !enchantmentRaw) return res.send("Format: !bazaar [item] [enchantment]");
 
-    const itemName = itemNameRaw.trim();
+    let itemName = itemNameRaw.trim();
     const enchantmentName = enchantmentRaw.trim();
-    const pageName = itemName.replace(/ /g, '_');
-    const url = `https://thebazaar.wiki.gg/wiki/${encodeURIComponent(pageName)}`;
+    let pageName = formatPageName(itemName);
+    let url = `https://thebazaar.wiki.gg/wiki/${encodeURIComponent(pageName)}`;
 
     try {
-        const { data } = await axios.get(url);
+        let response;
+        try {
+            response = await axios.get(url);
+        } catch (err) {
+            if (err.response && err.response.status === 404) {
+                const fuzzyMatch = await tryFuzzyItemName(itemName);
+                if (!fuzzyMatch) {
+                    return res.send(`Item \"${itemName}\" not found on the wiki. Please double-check the spelling.`);
+                }
+                itemName = fuzzyMatch;
+                pageName = formatPageName(itemName);
+                url = `https://thebazaar.wiki.gg/wiki/${encodeURIComponent(pageName)}`;
+                response = await axios.get(url);
+            } else {
+                throw err;
+            }
+        }
+
+        const data = response.data;
         const $ = cheerio.load(data);
 
         let found = false;
@@ -42,7 +83,6 @@ app.get('/bazaar', async (req, res) => {
         let characterName = "Unknown";
         let enchantmentList = [];
 
-        // Extract character from <aside> under h3 "Collection"
         $('aside').each((i, aside) => {
             const headers = $(aside).find('h3');
             headers.each((j, header) => {
@@ -56,7 +96,6 @@ app.get('/bazaar', async (req, res) => {
             });
         });
 
-        // Find all tables with captions containing "Enchantment"
         $('table').each((i, table) => {
             const caption = $(table).find('caption').text().toLowerCase();
             if (caption.includes("enchantment")) {
@@ -71,11 +110,10 @@ app.get('/bazaar', async (req, res) => {
                         });
                     }
                 });
-                return false; // break after finding enchantment table
+                return false;
             }
         });
 
-        // Check if user wants to list all enchantments
         if (enchantmentName.toLowerCase() === 'list') {
             if (enchantmentList.length === 0) {
                 return res.send(`No enchantments found for ${itemName}.`);
@@ -89,7 +127,6 @@ app.get('/bazaar', async (req, res) => {
             return res.send(`${itemName} Enchantments ✚ ${listOutput}`);
         }
 
-        // Use string similarity to find the closest match
         const names = enchantmentList.map(e => e.name);
         const match = stringSimilarity.findBestMatch(enchantmentName, names).bestMatch;
 
