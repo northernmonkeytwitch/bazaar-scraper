@@ -164,12 +164,7 @@ app.get('/bazaar', async (req, res) => {
             }
         });
 
-        if (enchantmentName.toLowerCase() === 'list') {
-            if (enchantmentList.length === 0) {
-                console.warn(`No enchantments found on page for ${itemName}.`);
-                return res.send(`${itemName} does not have any enchantments listed.`);
-            }
-            
+                    
         }
             const lastIndex = enchantmentList.length - 1;
             const listOutput = enchantmentList.map((e, idx) => {
