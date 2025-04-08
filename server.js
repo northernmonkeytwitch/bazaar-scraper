@@ -194,10 +194,7 @@ app.get('/bazaar', async (req, res) => {
                 return false;
             }
         });
-
-                    
-        }
-            const lastIndex = enchantmentList.length - 1;
+        const lastIndex = enchantmentList.length - 1;
             const listOutput = enchantmentList.map((e, idx) => {
                 const emoji = enchantEmojis[e.name] || "";
                 const entry = `${e.name}${emoji} = ${e.effect}`;
