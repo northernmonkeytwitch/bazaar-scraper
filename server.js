@@ -194,13 +194,7 @@ app.get('/bazaar', async (req, res) => {
                 return false;
             }
         });
-        const lastIndex = enchantmentList.length - 1;
-            const listOutput = enchantmentList.map((e, idx) => {
-            const emoji = enchantEmojis[e.name] || "";
-            const entry = `${e.name}${emoji} = ${e.effect}`;
-            return idx === enchantmentList.length - 1 ? `${entry} | This item belongs to ${characterName}.` : entry;
-        }).join(' | ');
-            return res.send(`${itemName} Enchantments ✚ ${listOutput}`);
+        
 
         const names = enchantmentList.map(e => e.name);
         const matchResult = stringSimilarity.findBestMatch(enchantmentName.toLowerCase(), names.map(n => n.toLowerCase()));
