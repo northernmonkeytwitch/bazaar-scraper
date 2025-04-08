@@ -5,6 +5,32 @@ const cheerio = require('cheerio');
 const stringSimilarity = require('string-similarity');
 const app = express();
 
+const discordWebhookUrl = 'https://discord.com/api/webhooks/1359232530074701864/lHhhpktVTBs1UG-fRGHGTy42SaCcsB52LfccbSXkRM7tBqbaTupkg8A8yzhCkZLQ1YPP';
+function sendDiscordAlert(message) {
+    return axios.post(discordWebhookUrl, { content: message }).catch(err => {
+        console.error('Failed to send Discord alert:', err.message);
+    });
+}
+
+const enchantmentAliases = {
+    "invincible": "Radiant",
+    "crit": "Deadly",
+    "fast": "Turbo",
+    "haste": "Turbo",
+    "poison": "Toxic",
+    "shield": "Shielded",
+    "fire": "Fiery",
+    "burn": "Fiery",
+    "ice": "Icy",
+    "freeze": "Icy",
+    "cold": "Icy",
+    "gold": "Golden",
+    "health": "Restorative",
+    "heal": "Restorative",
+    "slow": "Heavy",
+    "damage": "Obsidian"
+};
+
 const enchantEmojis = {
     "Turbo": "⚡",
     "Toxic": "☠️",
@@ -93,7 +119,10 @@ app.get('/bazaar', async (req, res) => {
     const args = query.trim().split(" ");
     if (args.length < 2) return res.send("Format: !bazaar [item] [enchantment]");
 
-    const enchantmentName = args.pop();
+    let enchantmentName = args.pop().toLowerCase();
+    if (enchantmentAliases[enchantmentName]) {
+        enchantmentName = enchantmentAliases[enchantmentName];
+    }
     let itemName = args.join(" ");
 
     // Attempt exact match before fuzzy fallback
@@ -106,6 +135,7 @@ app.get('/bazaar', async (req, res) => {
     } catch (err) {
         const fuzzyMatch = await tryFuzzyItemName(itemName);
         if (!fuzzyMatch) {
+            sendDiscordAlert(`❗ Bazaar Scraper: Item not found — "${itemName}" requested via query "${query}"`);
             return res.send(`Item "${itemName}" not found on the wiki. Please double-check the spelling.`);
         }
         itemName = fuzzyMatch.title;
@@ -115,7 +145,8 @@ app.get('/bazaar', async (req, res) => {
                                 try {
                 response = await axios.get(fallbackUrl);
         } catch (error) {
-            return res.send(`Even after fuzzy matching, "${itemName}" could not be found.`);
+            sendDiscordAlert(`❗ Bazaar Scraper: Fuzzy match failed for "${itemName}" (query: "${query}")`);
+            return res.send(`Could not find "${itemName}" in The Bazaar Wiki. Please check the spelling.`);
         }
     }
 
@@ -197,6 +228,7 @@ app.get('/bazaar', async (req, res) => {
         return res.send(`${itemName} ✚ ${bestMatch.target}${emote} = ${effectText} | This item belongs to ${characterName}.`);
     } catch (error) {
         console.error("Scraper error:", error.message);
+        sendDiscordAlert(`🚨 Bazaar Scraper Alert: Wiki layout may have changed or the site is down. User query: "${query}"`);
         return res.send("The Bazaar Wiki may be down or has changed layout. Don't worry, we have been alerted and are working on a fix. Please try again later.");
     }
 });
