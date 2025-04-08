@@ -136,7 +136,7 @@ app.get('/bazaar', async (req, res) => {
         const fuzzyMatch = await tryFuzzyItemName(itemName);
         if (!fuzzyMatch) {
             sendDiscordAlert(`❗ Bazaar Scraper: Item not found — "${itemName}" requested via query "${query}"`);
-            return res.send(`Item "${itemName}" not found on the wiki. Please double-check the spelling.`);
+            return res.send(`Item "${itemName}" not found on the wiki. Please double-check the spelling or if the item exists.`);
         }
         itemName = fuzzyMatch.title;
         const fallbackUrl = `https://thebazaar.wiki.gg/wiki/${fuzzyMatch.href}`;
@@ -199,6 +199,13 @@ app.get('/bazaar', async (req, res) => {
         const names = enchantmentList.map(e => e.name);
         const matchResult = stringSimilarity.findBestMatch(enchantmentName.toLowerCase(), names.map(n => n.toLowerCase()));
         const matchIndex = names.map(n => n.toLowerCase()).indexOf(matchResult.bestMatch.target);
+        if (matchIndex === -1 || matchResult.bestMatch.rating < 0.5) {
+            if (enchantmentList.length === 0) {
+                return res.send(`${itemName} does not have any enchantments listed.`);
+            } else {
+                return res.send(`"${enchantmentName}" is not an enchantment available on "${itemName}".`);
+            }
+        }
 
         if (matchResult.bestMatch.rating >= 0.5) {
             const matched = enchantmentList[matchIndex];
